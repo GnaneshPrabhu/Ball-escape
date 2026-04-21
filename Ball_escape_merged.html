@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulation Suite</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        :root {
+            --gold: #ffcc00;
+            --red: #ff4444;
+            --bg: #050508;
+            --panel-bg: rgba(10, 10, 18, 0.85);
+            --border: rgba(255,255,255,0.08);
+            --text: #e8e8f0;
+            --muted: rgba(255,255,255,0.35);
+            --accent-glow: 0 0 20px rgba(255,204,0,0.18);
+        }
+
+        body {
+            margin: 0;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            font-family: 'Space Mono', monospace;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* ── HEADER ── */
+        #app-header {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 28px 10px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            position: relative;
+            z-index: 20;
+            flex-shrink: 0;
+        }
+
+        #app-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 17px;
+            letter-spacing: 0.06em;
+            color: var(--gold);
+            text-transform: uppercase;
+        }
+
+        /* ── TAB SWITCHER ── */
+        #tab-bar {
+            display: flex;
+            gap: 4px;
+            background: rgba(255,255,255,0.04);
+            padding: 4px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 6px 14px;
+            border-radius: 7px;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+            color: var(--muted);
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--gold);
+            color: #000;
+            box-shadow: 0 0 12px rgba(255,204,0,0.35);
+        }
+
+        .tab-btn:hover:not(.active) {
+            color: var(--text);
+            background: rgba(255,255,255,0.06);
+        }
+
+        /* ── SIMULATION PANELS ── */
+        #sim-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .sim-panel {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+        }
+        .sim-panel.active { display: flex; }
+
+        /* ── CONTROL BAR (shared style) ── */
+        .ctrl-bar {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(12px);
+            flex-shrink: 0;
+        }
+
+        .cg {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cg label {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--muted);
+        }
+
+        input[type="number"] {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 5px 6px;
+            border-radius: 6px;
+            text-align: center;
+            width: 52px;
+            font-family: 'Space Mono', monospace;
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            cursor: pointer;
+            accent-color: var(--gold);
+            width: 72px;
+        }
+
+        input[type="range"]:disabled { opacity: 0.18; }
+
+        select, input[type="color"] {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 5px 8px;
+            border-radius: 6px;
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+        }
+
+        .divider {
+            width: 1px;
+            height: 28px;
+            background: var(--border);
+        }
+
+        .action-btn {
+            font-family: 'Space Mono', monospace;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            background: var(--gold);
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: #000;
+            transition: all 0.15s ease;
+        }
+        .action-btn:hover { filter: brightness(1.1); box-shadow: var(--accent-glow); }
+
+        .stop-btn { background: rgba(255,255,255,0.08); color: var(--text); border: 1px solid var(--border); }
+        .stop-btn:hover { background: rgba(255,255,255,0.14); box-shadow: none; }
+
+        .rec-btn { background: var(--red); color: #fff; }
+        .rec-btn:hover { filter: brightness(1.12); box-shadow: 0 0 18px rgba(255,68,68,0.35); }
+        .rec-btn.recording { background: #fff; color: var(--red); animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+        input[type="checkbox"] { accent-color: var(--gold); }
+
+        /* ── CANVAS AREA ── */
+        .canvas-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+            width: 100%;
+            padding: 14px;
+            overflow: hidden;
+        }
+
+        canvas {
+            background: #000;
+            box-shadow: 0 0 60px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.07);
+            border-radius: 10px;
+            max-width: 95%;
+            max-height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<div id="app-header">
+    <span id="app-title">⬡ Simulation Suite</span>
+    <div id="tab-bar">
+        <button class="tab-btn active" onclick="switchSim('sim1')">Ball Escape</button>
+        <button class="tab-btn" onclick="switchSim('sim2')">Suite v2</button>
+    </div>
+    <span style="font-size:10px; color: var(--muted); letter-spacing:.08em;">CANVAS ENGINE</span>
+</div>
+
+<div id="sim-wrapper">
+
+    <!-- ═══════════════ SIM 1: Ball Escape (Original) ═══════════════ -->
+    <div id="sim1" class="sim-panel active">
+        <div class="ctrl-bar">
+            <div class="cg"><label>Circles</label><input type="number" id="s1-ringInput" value="8" min="1" max="50"></div>
+            <div class="cg"><label>Bounce Limit</label><input type="number" id="s1-bounceLimitInput" value="10" min="1" max="100"></div>
+            <div class="cg"><label>Gap Size (deg)</label><input type="range" id="s1-gapSlider" min="10" max="90" value="35"></div>
+            <div class="cg"><label>Rotation Speed</label><input type="range" id="s1-rotSlider" min="0.1" max="4" step="0.1" value="1.5"></div>
+            <div class="cg"><label>Initial Power</label><input type="range" id="s1-bounceSlider" min="1" max="10" step="0.5" value="5"></div>
+            <div class="cg"><label>FX Volume</label><input type="range" id="s1-volumeSlider" min="0" max="1" step="0.1" value="0.7"></div>
+            <div class="divider"></div>
+            <button class="action-btn" onclick="s1_init()">Reset</button>
+            <button class="action-btn stop-btn" id="s1-startBtn" onclick="s1_togglePause()">Start</button>
+            <button class="action-btn rec-btn" id="s1-recordBtn" onclick="s1_toggleRecording()">⏺ Record</button>
+        </div>
+        <div class="canvas-area">
+            <canvas id="s1-canvas"></canvas>
+        </div>
+    </div>
+
+    <!-- ═══════════════ SIM 2: Simulation Suite v2 ═══════════════ -->
+    <div id="sim2" class="sim-panel">
+        <div class="ctrl-bar">
+            <div class="cg">
+                <label>Simulation</label>
+                <select id="s2-simType" onchange="s2_init()">
+                    <option value="timed">Timed Escape (Particles)</option>
+                    <option value="escape">Ball Escapes Circle</option>
+                </select>
+            </div>
+            <div class="divider"></div>
+            <div id="s2-escape-controls" style="display:none; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div class="cg"><label>Rings</label><input type="number" id="s2-ringInput" value="10" min="1" max="300"></div>
+                <div class="cg"><label>Size</label><input type="range" id="s2-sizeSlider" min="2" max="50" value="25"></div>
+                <div class="cg"><label>Rotation</label><input type="range" id="s2-rotSlider" min="0" max="4" step="0.1" value="1.2"></div>
+                <div class="cg"><label>Sync</label><input type="checkbox" id="s2-syncCheck"></div>
+                <div class="cg"><label>Sync Speed</label><input type="range" id="s2-syncSpeedSlider" min="0" max="5" step="0.1" value="0.6" disabled></div>
+                <div class="cg"><label>Bounce</label><input type="range" id="s2-bounceSlider" min="0.5" max="3" step="0.1" value="1.2"></div>
+            </div>
+            <div id="s2-timed-controls" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div class="cg"><label>Rotation</label><input type="range" id="s2-timedRotSlider" min="0" max="4" step="0.1" value="1.5"></div>
+                <div class="cg"><label>Base Color</label><input type="color" id="s2-ballColor" value="#ffcc00"></div>
+                <div class="cg"><label>Spawn Count</label><input type="number" id="s2-spawnCount" value="4" min="1" max="20"></div>
+            </div>
+            <div class="divider"></div>
+            <div class="cg"><label>FX Volume</label><input type="range" id="s2-volumeSlider" min="0" max="1" step="0.1" value="0.7"></div>
+            <label class="checkbox-row"><input type="checkbox" id="s2-fxCheck" checked>FX</label>
+            <button class="action-btn" onclick="s2_init()">Reset</button>
+            <button class="action-btn stop-btn" id="s2-stopBtn" onclick="s2_togglePause()">Start</button>
+            <button class="action-btn rec-btn" id="s2-recordBtn" onclick="s2_toggleRecording()">⏺ Record</button>
+        </div>
+        <div class="canvas-area">
+            <canvas id="s2-canvas"></canvas>
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     SIM 1 SCRIPT — untouched logic from Ball_escape_simulation.html
+     (only element IDs prefixed with "s1-" to avoid conflicts)
+═══════════════════════════════════════════════════ -->
+<script>
+    const s1_canvas = document.getElementById('s1-canvas');
+    const s1_ctx = s1_canvas.getContext('2d');
+
+    const s1_ringInput = document.getElementById('s1-ringInput');
+    const s1_bounceLimitInput = document.getElementById('s1-bounceLimitInput');
+    const s1_gapSlider = document.getElementById('s1-gapSlider');
+    const s1_rotSlider = document.getElementById('s1-rotSlider');
+    const s1_bounceSlider = document.getElementById('s1-bounceSlider');
+    const s1_volumeSlider = document.getElementById('s1-volumeSlider');
+    const s1_startBtn = document.getElementById('s1-startBtn');
+    const s1_recordBtn = document.getElementById('s1-recordBtn');
+
+    // Renamed all vars/functions with s1_ prefix
+    let s1_rings = [], s1_ball = null, s1_frozenBalls = [];
+    let s1_destroyedCount = 0;
+    let s1_isPaused = true;
+    let s1_lastTime = 0;
+    let s1_animationId = null;
+    let s1_mediaRecorder, s1_recordedChunks = [];
+    let s1_isRecording = false;
+
+    const S1_CENTER = 400;
+    const S1_RING_SPACING = 30;
+
+    const s1_audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const s1_streamDest = s1_audioCtx.createMediaStreamDestination();
+
+    const s1_destroySound = new Audio('fahhh_KcgAXfs.mp3');
+    s1_destroySound.crossOrigin = "anonymous";
+    const s1_mp3Source = s1_audioCtx.createMediaElementSource(s1_destroySound);
+    const s1_mp3Gain = s1_audioCtx.createGain();
+    s1_mp3Source.connect(s1_mp3Gain);
+    s1_mp3Gain.connect(s1_audioCtx.destination);
+    s1_mp3Gain.connect(s1_streamDest);
+
+    function s1_playBounceSound() {
+        if (s1_audioCtx.state === 'suspended') s1_audioCtx.resume();
+        const osc = s1_audioCtx.createOscillator();
+        const gain = s1_audioCtx.createGain();
+        osc.type = 'sine';
+        const baseFreq = 600;
+        const currentFreq = baseFreq + (s1_destroyedCount * 50);
+        osc.frequency.setValueAtTime(currentFreq, s1_audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15 * s1_volumeSlider.value, s1_audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, s1_audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(s1_audioCtx.destination);
+        gain.connect(s1_streamDest);
+        osc.start();
+        osc.stop(s1_audioCtx.currentTime + 0.1);
+    }
+
+    function s1_playFaaaahSound() {
+        if (s1_audioCtx.state === 'suspended') s1_audioCtx.resume();
+        s1_mp3Gain.gain.setValueAtTime(s1_volumeSlider.value, s1_audioCtx.currentTime);
+        s1_destroySound.currentTime = 0;
+        s1_destroySound.play().catch(e => console.log("Audio file missing? Ensure fahhh_KcgAXfs.mp3 is in the folder."));
+    }
+
+    function s1_spawnBall() {
+        const bPower = parseFloat(s1_bounceSlider.value);
+        const angle = Math.random() * Math.PI * 2;
+        s1_ball = {
+            x: S1_CENTER, y: S1_CENTER,
+            dx: Math.cos(angle) * bPower,
+            dy: Math.sin(angle) * bPower,
+            radius: 6, gravity: 0.2,
+            bouncesLeft: parseInt(s1_bounceLimitInput.value),
+            frozen: false
+        };
+    }
+
+    function s1_init() {
+        if (s1_animationId) cancelAnimationFrame(s1_animationId);
+        s1_canvas.width = 800; s1_canvas.height = 800;
+        s1_rings = []; s1_frozenBalls = []; s1_destroyedCount = 0;
+        const numRings = parseInt(s1_ringInput.value);
+        const gapSizeRad = (parseInt(s1_gapSlider.value) * Math.PI) / 180;
+        for (let i = 0; i < numRings; i++) {
+            s1_rings.push({
+                radius: (i + 1) * S1_RING_SPACING + 20,
+                angle: 0,
+                speed: (i % 2 === 0 ? 1 : -1) * (0.01 + Math.random() * 0.01),
+                gapSize: gapSizeRad, isDestroyed: false
+            });
+        }
+        s1_spawnBall();
+        s1_isPaused = true; s1_startBtn.textContent = "Start";
+        s1_lastTime = performance.now();
+        s1_renderFrame(s1_lastTime);
+    }
+
+    function s1_togglePause() {
+        s1_isPaused = !s1_isPaused;
+        s1_startBtn.textContent = s1_isPaused ? "Resume" : "Stop";
+        if (!s1_isPaused) {
+            if (s1_audioCtx.state === 'suspended') s1_audioCtx.resume();
+            s1_lastTime = performance.now();
+            s1_renderFrame(s1_lastTime);
+        }
+    }
+
+    function s1_renderFrame(timestamp) {
+        if (s1_isPaused && !s1_isRecording) return;
+        const dt = (timestamp - s1_lastTime) / 16.6;
+        s1_lastTime = timestamp;
+
+        s1_ctx.fillStyle = "rgba(5, 5, 8, 0.3)";
+        s1_ctx.fillRect(0, 0, s1_canvas.width, s1_canvas.height);
+
+        const rotMult = parseFloat(s1_rotSlider.value);
+        s1_rings.forEach((ring, index) => {
+            if (ring.isDestroyed) return;
+            ring.angle += ring.speed * rotMult * dt;
+            s1_ctx.beginPath();
+            s1_ctx.arc(S1_CENTER, S1_CENTER, ring.radius, ring.angle + ring.gapSize, ring.angle + (Math.PI * 2));
+            s1_ctx.strokeStyle = (index === s1_destroyedCount) ? "#fff" : "rgba(255,255,255,0.2)";
+            s1_ctx.lineWidth = 4;
+            s1_ctx.stroke();
+        });
+
+        s1_frozenBalls.forEach(fBall => {
+            s1_ctx.beginPath(); s1_ctx.arc(fBall.x, fBall.y, fBall.radius, 0, Math.PI * 2);
+            s1_ctx.fillStyle = "rgba(255, 204, 0, 0.5)"; s1_ctx.fill();
+        });
+
+        if (s1_ball) {
+            s1_ctx.fillStyle = "white"; s1_ctx.font = "bold 20px Segoe UI"; s1_ctx.textAlign = "center";
+            s1_ctx.fillText("Bounces Left: " + s1_ball.bouncesLeft, S1_CENTER, 120);
+
+            if (!s1_ball.frozen) {
+                s1_ball.dy += s1_ball.gravity * dt;
+                s1_ball.x += s1_ball.dx * dt; s1_ball.y += s1_ball.dy * dt;
+                const currentRing = s1_rings[s1_destroyedCount];
+                if (currentRing) {
+                    const distX = s1_ball.x - S1_CENTER, distY = s1_ball.y - S1_CENTER, dist = Math.sqrt(distX**2 + distY**2);
+                    if (dist + s1_ball.radius >= currentRing.radius) {
+                        let ballAngle = Math.atan2(distY, distX);
+                        let relAngle = (ballAngle - currentRing.angle) % (Math.PI * 2);
+                        if (relAngle < 0) relAngle += Math.PI * 2;
+
+                        if (relAngle > currentRing.gapSize) {
+                            if (s1_ball.bouncesLeft > 0) {
+                                s1_ball.bouncesLeft--;
+                                s1_playBounceSound();
+                                const nx = distX / dist, ny = distY / dist, dot = s1_ball.dx * nx + s1_ball.dy * ny;
+                                s1_ball.dx -= 2 * dot * nx; s1_ball.dy -= 2 * dot * ny;
+                                s1_ball.x = S1_CENTER + nx * (currentRing.radius - s1_ball.radius - 1);
+                                s1_ball.y = S1_CENTER + ny * (currentRing.radius - s1_ball.radius - 1);
+                            } else {
+                                s1_ball.frozen = true; s1_frozenBalls.push({...s1_ball});
+                                if (s1_destroyedCount < s1_rings.length) s1_spawnBall();
+                            }
+                        } else if (dist > currentRing.radius + s1_ball.radius) {
+                            currentRing.isDestroyed = true; s1_destroyedCount++;
+                            s1_playFaaaahSound();
+                            const currentSpeed = Math.sqrt(s1_ball.dx**2 + s1_ball.dy**2);
+                            const ratio = (currentSpeed + 0.3) / currentSpeed;
+                            s1_ball.dx *= ratio; s1_ball.dy *= ratio;
+
+                            if (s1_destroyedCount >= s1_rings.length) {
+                                s1_ball.frozen = true; s1_frozenBalls.push({...s1_ball});
+                                if (s1_isRecording) {
+                                    setTimeout(() => { if (s1_isRecording) s1_toggleRecording(); }, 1000);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            s1_ctx.beginPath(); s1_ctx.arc(s1_ball.x, s1_ball.y, s1_ball.radius, 0, Math.PI * 2);
+            s1_ctx.fillStyle = "#ffcc00"; s1_ctx.shadowBlur = s1_ball.frozen ? 0 : 15; s1_ctx.shadowColor = "#ffcc00";
+            s1_ctx.fill(); s1_ctx.shadowBlur = 0;
+        }
+        s1_animationId = requestAnimationFrame(s1_renderFrame);
+    }
+
+    function s1_toggleRecording() {
+        if (!s1_isRecording) {
+            s1_init(); s1_togglePause();
+            s1_recordedChunks = [];
+            if (s1_audioCtx.state === 'suspended') s1_audioCtx.resume();
+            const canvasStream = s1_canvas.captureStream(60);
+            const audioStream = s1_streamDest.stream;
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...audioStream.getAudioTracks()
+            ]);
+            s1_mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm; codecs=vp9,opus' });
+            s1_mediaRecorder.ondataavailable = (e) => s1_recordedChunks.push(e.data);
+            s1_mediaRecorder.onstop = () => {
+                const blob = new Blob(s1_recordedChunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'simulation.webm'; a.click();
+            };
+            s1_mediaRecorder.start();
+            s1_isRecording = true; s1_recordBtn.textContent = "⏹ Stop Rec"; s1_recordBtn.classList.add("recording");
+        } else {
+            if (s1_mediaRecorder && s1_mediaRecorder.state !== "inactive") s1_mediaRecorder.stop();
+            s1_isRecording = false; s1_recordBtn.textContent = "⏺ Record"; s1_recordBtn.classList.remove("recording");
+        }
+    }
+
+    s1_init();
+</script>
+
+<!-- ═══════════════════════════════════════════════════
+     SIM 2 SCRIPT — untouched logic from Ball_escape_simulation_2.html
+     (only element IDs prefixed with "s2-" to avoid conflicts)
+═══════════════════════════════════════════════════ -->
+<script>
+    const s2_canvas = document.getElementById('s2-canvas');
+    const s2_ctx = s2_canvas.getContext('2d');
+    const s2_recordBtn = document.getElementById('s2-recordBtn');
+    const s2_stopBtn = document.getElementById('s2-stopBtn');
+
+    const s2_simType = document.getElementById('s2-simType');
+    const s2_escapeControls = document.getElementById('s2-escape-controls'), s2_timedControls = document.getElementById('s2-timed-controls');
+    const s2_ringInput = document.getElementById('s2-ringInput'), s2_sizeSlider = document.getElementById('s2-sizeSlider');
+    const s2_bounceSlider = document.getElementById('s2-bounceSlider'), s2_rotSlider = document.getElementById('s2-rotSlider');
+    const s2_syncCheck = document.getElementById('s2-syncCheck'), s2_syncSpeedSlider = document.getElementById('s2-syncSpeedSlider');
+    const s2_timedRotSlider = document.getElementById('s2-timedRotSlider'), s2_ballColorPicker = document.getElementById('s2-ballColor'), s2_spawnCountInput = document.getElementById('s2-spawnCount');
+    const s2_fxCheck = document.getElementById('s2-fxCheck');
+    const s2_volumeSlider = document.getElementById('s2-volumeSlider');
+
+    let s2_rings = [], s2_balls = [], s2_numRings, s2_currentSpacing, s2_destroyedCount = 0;
+    let s2_animationId = null, s2_isRecording = false, s2_mediaRecorder, s2_recordedChunks = [];
+    let s2_isPaused = true;
+    let s2_lastTime = 0;
+    const s2_gapSize = Math.PI / 8, s2_baseGravity = 0.25;
+
+    // ── AUDIO ──
+    const s2_audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const s2_streamDest = s2_audioCtx.createMediaStreamDestination();
+
+    const s2_destroySound = new Audio('fahhh_KcgAXfs.mp3');
+    s2_destroySound.crossOrigin = "anonymous";
+    const s2_mp3Source = s2_audioCtx.createMediaElementSource(s2_destroySound);
+    const s2_mp3Gain = s2_audioCtx.createGain();
+    s2_mp3Source.connect(s2_mp3Gain);
+    s2_mp3Gain.connect(s2_audioCtx.destination);
+    s2_mp3Gain.connect(s2_streamDest);
+
+    function s2_playBounceSound() {
+        if (s2_audioCtx.state === 'suspended') s2_audioCtx.resume();
+        const osc = s2_audioCtx.createOscillator();
+        const gain = s2_audioCtx.createGain();
+        osc.type = 'sine';
+        const currentFreq = 600 + (s2_destroyedCount * 50);
+        osc.frequency.setValueAtTime(currentFreq, s2_audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.15 * s2_volumeSlider.value, s2_audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, s2_audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(s2_audioCtx.destination);
+        gain.connect(s2_streamDest);
+        osc.start();
+        osc.stop(s2_audioCtx.currentTime + 0.1);
+    }
+
+    function s2_playFaaaahSound() {
+        if (s2_audioCtx.state === 'suspended') s2_audioCtx.resume();
+        s2_mp3Gain.gain.setValueAtTime(s2_volumeSlider.value, s2_audioCtx.currentTime);
+        s2_destroySound.currentTime = 0;
+        s2_destroySound.play().catch(e => console.log("Audio file missing? Ensure fahhh_KcgAXfs.mp3 is in the folder."));
+    }
+
+    function s2_init() {
+        if (s2_animationId) cancelAnimationFrame(s2_animationId);
+        s2_isPaused = true;
+        s2_stopBtn.textContent = "Start";
+        s2_balls = []; s2_rings = []; s2_destroyedCount = 0;
+        s2_canvas.width = 800; s2_canvas.height = 800;
+        const mode = s2_simType.value;
+
+        s2_escapeControls.style.display = (mode === 'escape') ? 'flex' : 'none';
+        s2_timedControls.style.display = (mode === 'timed') ? 'flex' : 'none';
+
+        if (mode === 'escape') {
+            s2_numRings = parseInt(s2_ringInput.value); s2_currentSpacing = parseInt(s2_sizeSlider.value);
+            for (let i = 0; i < s2_numRings; i++) {
+                s2_rings.push({ currentRadius: 60 + i * s2_currentSpacing, targetRadius: 60 + i * s2_currentSpacing, angle: 0, baseLinearSpeed: 0.6 * (0.9 + Math.random() * 0.2), isDestroyed: false });
+            }
+            s2_spawnBall(400, 380, parseFloat(s2_bounceSlider.value), '#ffcc00', false);
+        } else {
+            s2_rings.push({ currentRadius: 150, angle: Math.PI * 1.5, baseLinearSpeed: 1.5, isDestroyed: false });
+            s2_spawnBurst(1);
+        }
+
+        s2_updateUIStates();
+        s2_lastTime = performance.now();
+        s2_isPaused = false; s2_draw(s2_lastTime); s2_isPaused = true;
+    }
+
+    function s2_togglePause() {
+        if (s2_isPaused) {
+            s2_isPaused = false; s2_stopBtn.textContent = "Stop";
+            if (s2_audioCtx.state === 'suspended') s2_audioCtx.resume();
+            s2_lastTime = performance.now();
+            s2_draw(s2_lastTime);
+        } else {
+            s2_isPaused = true; s2_stopBtn.textContent = "Resume";
+            if (s2_animationId) cancelAnimationFrame(s2_animationId);
+        }
+    }
+
+    function s2_spawnBall(x, y, bounce, color, isTimed) {
+        let dx = 6 * bounce, dy = -5 * bounce;
+        if (isTimed) {
+            const angle = Math.random() * Math.PI * 2;
+            const force = 3 + Math.random() * 5;
+            dx = Math.cos(angle) * force; dy = Math.sin(angle) * force;
+            color = `hsl(${Math.random() * 360}, 70%, 60%)`;
+        }
+        s2_balls.push({ x, y, radius: 5, dx, dy, color, active: true });
+    }
+
+    function s2_spawnBurst(count) {
+        for (let i = 0; i < count; i++) s2_spawnBall(400, 400, 1.2, null, true);
+    }
+
+    function s2_updateUIStates() {
+        s2_rotSlider.disabled = s2_syncCheck.checked;
+        s2_syncSpeedSlider.disabled = !s2_syncCheck.checked;
+        if (s2_syncCheck.checked) s2_rings.forEach(r => r.angle = 0);
+    }
+    s2_syncCheck.addEventListener('change', s2_updateUIStates);
+
+    function s2_toggleRecording() {
+        if (!s2_isRecording) {
+            s2_init(); s2_togglePause();
+            s2_recordedChunks = [];
+            if (s2_audioCtx.state === 'suspended') s2_audioCtx.resume();
+            const canvasStream = s2_canvas.captureStream(60);
+            const audioStream = s2_streamDest.stream;
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...audioStream.getAudioTracks()
+            ]);
+            s2_mediaRecorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm; codecs=vp9,opus' });
+            s2_mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) s2_recordedChunks.push(e.data); };
+            s2_mediaRecorder.onstop = s2_exportVideo;
+            s2_isRecording = true; s2_recordBtn.textContent = "⏹ Stop Rec"; s2_recordBtn.classList.add("recording");
+            s2_mediaRecorder.start();
+        } else { s2_mediaRecorder.stop(); }
+    }
+
+    function s2_exportVideo() {
+        const blob = new Blob(s2_recordedChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `sim_export.webm`; a.click();
+        s2_isRecording = false; s2_recordBtn.textContent = "⏺ Record"; s2_recordBtn.classList.remove("recording");
+    }
+
+    function s2_draw(timestamp) {
+        if (s2_isPaused) return;
+        const dt = (timestamp - s2_lastTime) / 16.6;
+        s2_lastTime = timestamp;
+
+        if (s2_fxCheck.checked) { s2_ctx.fillStyle = "rgba(5, 5, 8, 0.25)"; s2_ctx.fillRect(0, 0, 800, 800); }
+        else { s2_ctx.fillStyle = "#050508"; s2_ctx.fillRect(0, 0, 800, 800); }
+
+        const mode = s2_simType.value;
+        if (mode === 'escape') {
+            const remaining = s2_numRings - s2_destroyedCount;
+            if (remaining > 0) {
+                s2_ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; s2_ctx.font = "bold 40px Segoe UI"; s2_ctx.textAlign = "center"; s2_ctx.textBaseline = "middle";
+                s2_ctx.fillText(remaining, 400, 400);
+            }
+            s2_renderRings(parseFloat(s2_rotSlider.value), parseFloat(s2_syncSpeedSlider.value), s2_syncCheck.checked, dt);
+        } else {
+            s2_ctx.fillStyle = "rgba(255, 255, 255, 0.8)"; s2_ctx.font = "bold 24px Segoe UI"; s2_ctx.textAlign = "center"; s2_ctx.textBaseline = "bottom";
+            s2_ctx.fillText("Balls: " + s2_balls.length, 400, 240);
+            s2_renderRings(parseFloat(s2_timedRotSlider.value), 0, false, dt);
+        }
+
+        s2_balls.forEach(b => {
+            if (!b.active) { b.x += b.dx * dt; b.y += b.dy * dt; }
+            else {
+                b.dy += s2_baseGravity * dt; b.x += b.dx * dt; b.y += b.dy * dt;
+                const currentRing = (mode === 'escape') ? s2_rings[s2_destroyedCount] : s2_rings[0];
+                if (currentRing) s2_checkCollision(b, currentRing, mode === 'escape', dt);
+            }
+            s2_ctx.beginPath(); s2_ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2); s2_ctx.fillStyle = b.color;
+            if (s2_fxCheck.checked) { s2_ctx.shadowBlur = 8; s2_ctx.shadowColor = b.color; }
+            s2_ctx.fill(); s2_ctx.shadowBlur = 0;
+        });
+
+        s2_animationId = requestAnimationFrame(s2_draw);
+    }
+
+    function s2_renderRings(rotMult, syncSpd, isSynced, dt) {
+        s2_ctx.lineWidth = 2;
+        s2_rings.forEach((ring, index) => {
+            if (ring.isDestroyed) return;
+            if (ring.targetRadius && Math.abs(ring.currentRadius - ring.targetRadius) > 0.1) ring.currentRadius += (ring.targetRadius - ring.currentRadius) * 0.1 * dt;
+            let angularStep = (isSynced ? syncSpd : ring.baseLinearSpeed * rotMult) / ring.currentRadius;
+            ring.angle += angularStep * dt;
+            s2_ctx.beginPath(); s2_ctx.arc(400, 400, ring.currentRadius, ring.angle + s2_gapSize, ring.angle - s2_gapSize);
+            s2_ctx.strokeStyle = (index === (s2_simType.value === 'escape' ? s2_destroyedCount : 0)) ? "#fff" : "rgba(255,255,255,0.15)"; s2_ctx.stroke();
+        });
+    }
+
+    function s2_checkCollision(b, ring, isOriginal, dt) {
+        const distX = b.x - 400, distY = b.y - 400, distance = Math.sqrt(distX * distX + distY * distY);
+        if (distance + b.radius >= ring.currentRadius) {
+            let ballAngle = Math.atan2(distY, distX);
+            let relAngle = (ballAngle - ring.angle) % (Math.PI * 2);
+            if (relAngle < 0) relAngle += Math.PI * 2;
+
+            if (!(relAngle < s2_gapSize || relAngle > (Math.PI * 2 - s2_gapSize))) {
+                const nx = distX / distance, ny = distY / distance;
+                const dot = b.dx * nx + b.dy * ny;
+                b.dx -= 2 * dot * nx; b.dy -= 2 * dot * ny;
+                b.x -= nx * ((distance + b.radius) - ring.currentRadius + 1); b.y -= ny * ((distance + b.radius) - ring.currentRadius + 1);
+                s2_playBounceSound();
+            } else {
+                if (isOriginal) {
+                    ring.isDestroyed = true; s2_destroyedCount++;
+                    s2_playFaaaahSound();
+                    s2_rings.forEach(r => { if (!r.isDestroyed) r.targetRadius -= parseInt(s2_sizeSlider.value); });
+                    if (s2_destroyedCount >= s2_numRings) {
+                        b.active = false; b.dx = 0; b.dy = 0;
+                        if (s2_isRecording) setTimeout(() => { if (s2_mediaRecorder.state === "recording") s2_mediaRecorder.stop(); }, 1000);
+                    }
+                } else {
+                    b.active = false;
+                    s2_playFaaaahSound();
+                    s2_spawnBurst(parseInt(s2_spawnCountInput.value));
+                }
+            }
+        }
+    }
+
+    s2_init();
+</script>
+
+<!-- ═══════════ TAB SWITCHER ═══════════ -->
+<script>
+    function switchSim(id) {
+        document.querySelectorAll('.sim-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        const idx = id === 'sim1' ? 0 : 1;
+        document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    }
+</script>
+
+</body>
+</html>
